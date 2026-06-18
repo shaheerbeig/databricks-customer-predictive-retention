@@ -1,0 +1,10 @@
+resources:
+  pipelines:
+    medallion:
+      name: "[${bundle.target}] saas_medallion_pipeline"
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      serverless: true
+      libraries:
+        - glob:
+            include: ../src/pipelines/medallion/transformations/**

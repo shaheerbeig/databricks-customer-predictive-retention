@@ -1,0 +1,6 @@
+resources:
+  dashboards:
+    churn_dashboard:
+      display_name: "[${bundle.target}] SaaS Revenue & Churn Intelligence"
+      file_path: ../src/dashboards/saas_churn.lvdash.json
+      warehouse_id: ${var.warehouse_id}

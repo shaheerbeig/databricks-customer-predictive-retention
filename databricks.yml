@@ -1,0 +1,39 @@
+# Databricks Asset Bundle — the whole SaaS churn project as deployable code.
+# `databricks bundle deploy -t <target>` ships every resource below to a workspace.
+bundle:
+  name: saas-churn-intelligence
+
+include:
+  - resources/*.yml
+
+# Parameterize everything that differs between environments.
+variables:
+  catalog:
+    description: Target Unity Catalog
+    default: ai_dev_kit_testing
+  schema:
+    description: Target schema for pipeline outputs
+    default: default
+  warehouse_id:
+    description: SQL warehouse used by the dashboard
+    default: "70766d2e78fd7b50"
+
+targets:
+  # dev = isolated sandbox. mode:development prefixes every resource with
+  # "[dev <you>]" and PAUSES all schedules, so nothing runs by surprise.
+  # It writes to a SEPARATE schema so it can never touch the prod tables.
+  dev:
+    default: true
+    mode: development
+    workspace:
+      host: https://adb-7405609140297387.7.azuredatabricks.net
+    variables:
+      schema: saas_dev
+
+  # prod = the real deal. mode:production enforces stricter rules.
+  prod:
+    mode: production
+    workspace:
+      host: https://adb-7405609140297387.7.azuredatabricks.net
+    variables:
+      schema: default

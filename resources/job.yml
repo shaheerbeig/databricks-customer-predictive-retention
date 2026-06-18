@@ -1,0 +1,27 @@
+resources:
+  jobs:
+    ingest_and_pipeline:
+      name: "[${bundle.target}] saas_messy_ingest_and_pipeline"
+      tasks:
+        # 1) append a messy batch (serverless notebook, no cluster config = serverless)
+        - task_key: generate_messy_data
+          notebook_task:
+            notebook_path: ../src/notebooks/generate_messy_batch.py
+        # 2) run the pipeline defined in pipeline.yml (referenced by id, not hardcoded)
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: generate_messy_data
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.medallion.id}
+        # 3) refresh the serving snapshot for the app
+        - task_key: refresh_serving_table
+          depends_on:
+            - task_key: run_pipeline
+          notebook_task:
+            notebook_path: ../src/notebooks/refresh_app_serving_table.sql
+      schedule:
+        quartz_cron_expression: "0 0 0/2 * * ?"  # every 2 hours (auto-PAUSED in dev mode)
+        timezone_id: "UTC"
+      email_notifications:
+        on_failure:
+          - mmtahashafiq@gmail.com

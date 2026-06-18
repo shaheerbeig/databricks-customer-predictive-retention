@@ -1,0 +1,1234 @@
+{
+  "datasets": [
+    {
+      "name": "kpis",
+      "displayName": "KPIs",
+      "queryLines": [
+        "SELECT SUM(active_mrr) AS total_active_mrr, SUM(account_count)-SUM(churned_account_count) AS active_accounts, SUM(churned_account_count)/SUM(account_count) AS overall_churn_rate, SUM(active_mrr)/(SUM(account_count)-SUM(churned_account_count)) AS avg_mrr_per_active FROM ai_dev_kit_testing.default.gold_mrr_by_plan_industry"
+      ]
+    },
+    {
+      "name": "mrr_by_segment",
+      "displayName": "MRR by Industry & Plan",
+      "queryLines": [
+        "SELECT industry, plan_type, active_mrr FROM ai_dev_kit_testing.default.gold_mrr_by_plan_industry"
+      ]
+    },
+    {
+      "name": "mrr_growth",
+      "displayName": "Cumulative MRR",
+      "queryLines": [
+        "WITH monthly AS (SELECT DATE_TRUNC('MONTH', contract_start_date) AS month, SUM(CASE WHEN status='active' THEN monthly_recurring_revenue ELSE 0 END) AS active_mrr_month FROM ai_dev_kit_testing.default.silver_account_health GROUP BY DATE_TRUNC('MONTH', contract_start_date)) SELECT month, SUM(active_mrr_month) OVER (ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_active_mrr FROM monthly ORDER BY month"
+      ]
+    },
+    {
+      "name": "lifecycle",
+      "displayName": "Lifecycle",
+      "queryLines": [
+        "SELECT plan_type, CASE status WHEN 'active' THEN '1 Active' WHEN 'trial' THEN '2 Trial' WHEN 'churned' THEN '3 Churned' END AS lifecycle_stage, COUNT(*) AS account_count FROM ai_dev_kit_testing.default.silver_account_health GROUP BY plan_type, status"
+      ]
+    },
+    {
+      "name": "top_accounts",
+      "displayName": "Top accounts",
+      "queryLines": [
+        "SELECT company_name, usage_event_count_90d AS total_events FROM ai_dev_kit_testing.default.silver_account_health ORDER BY usage_event_count_90d DESC LIMIT 20"
+      ]
+    },
+    {
+      "name": "engagement",
+      "displayName": "Engagement",
+      "queryLines": [
+        "SELECT company_name, plan_type, usage_event_count_90d AS total_events, total_session_minutes_90d AS total_session_minutes, total_pages_viewed_90d AS pages_viewed FROM ai_dev_kit_testing.default.silver_account_health WHERE usage_event_count_90d > 0"
+      ]
+    },
+    {
+      "name": "risk_kpis",
+      "displayName": "Risk KPIs",
+      "queryLines": [
+        "SELECT SUM(CASE WHEN risk_band='High' THEN 1 ELSE 0 END) AS high_risk_accounts, SUM(CASE WHEN risk_band='High' THEN monthly_recurring_revenue ELSE 0 END) AS mrr_at_risk, SUM(CASE WHEN risk_band='Medium' THEN 1 ELSE 0 END) AS medium_risk_accounts FROM ai_dev_kit_testing.default.account_churn_scores"
+      ]
+    },
+    {
+      "name": "best_model",
+      "displayName": "Best model",
+      "queryLines": [
+        "SELECT best_model, best_auc FROM ai_dev_kit_testing.default.churn_training_status"
+      ]
+    },
+    {
+      "name": "risk_band",
+      "displayName": "Risk band",
+      "queryLines": [
+        "SELECT risk_band, COUNT(*) AS accounts FROM ai_dev_kit_testing.default.account_churn_scores GROUP BY risk_band"
+      ]
+    },
+    {
+      "name": "model_leaderboard",
+      "displayName": "Model leaderboard",
+      "queryLines": [
+        "SELECT model, auc FROM ai_dev_kit_testing.default.churn_model_metrics"
+      ]
+    },
+    {
+      "name": "feature_importance",
+      "displayName": "Feature importance",
+      "queryLines": [
+        "SELECT feature, importance FROM ai_dev_kit_testing.default.churn_feature_importance ORDER BY importance DESC"
+      ]
+    },
+    {
+      "name": "top_at_risk",
+      "displayName": "Top at-risk",
+      "queryLines": [
+        "SELECT account_id, plan_type, monthly_recurring_revenue, total_events_90d, churn_risk, risk_band FROM ai_dev_kit_testing.default.account_churn_scores ORDER BY churn_risk DESC LIMIT 20"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "main",
+      "displayName": "Revenue & Churn",
+      "layout": [
+        {
+          "widget": {
+            "name": "title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## SaaS Revenue & Churn Intelligence"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "subtitle",
+            "multilineTextboxSpec": {
+              "lines": [
+                "Active MRR, churn, account lifecycle and engagement across plans and industries."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-active-mrr",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpis",
+                  "fields": [
+                    {
+                      "name": "total_active_mrr",
+                      "expression": "`total_active_mrr`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_active_mrr",
+                  "displayName": "Total Active MRR",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Active MRR"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-active-accounts",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpis",
+                  "fields": [
+                    {
+                      "name": "active_accounts",
+                      "expression": "`active_accounts`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "active_accounts",
+                  "displayName": "Active Accounts",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "fixed",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Active Accounts"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-churn-rate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpis",
+                  "fields": [
+                    {
+                      "name": "overall_churn_rate",
+                      "expression": "`overall_churn_rate`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "overall_churn_rate",
+                  "displayName": "Overall Churn Rate",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Overall Churn Rate"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-avg-mrr-active",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpis",
+                  "fields": [
+                    {
+                      "name": "avg_mrr_per_active",
+                      "expression": "`avg_mrr_per_active`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_mrr_per_active",
+                  "displayName": "Avg MRR / Active",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avg MRR per Active Account"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "hdr-revenue",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Revenue by Segment"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "bar-mrr",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "mrr_by_segment",
+                  "fields": [
+                    {
+                      "name": "industry",
+                      "expression": "`industry`"
+                    },
+                    {
+                      "name": "plan_type",
+                      "expression": "`plan_type`"
+                    },
+                    {
+                      "name": "active_mrr",
+                      "expression": "`active_mrr`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "industry",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Industry"
+                },
+                "y": {
+                  "fieldName": "active_mrr",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Active MRR ($)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "color": {
+                  "fieldName": "plan_type",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Plan"
+                }
+              },
+              "mark": {
+                "layout": "group"
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Active MRR by Industry & Plan"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "line-growth",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "mrr_growth",
+                  "fields": [
+                    {
+                      "name": "month",
+                      "expression": "`month`"
+                    },
+                    {
+                      "name": "cumulative_active_mrr",
+                      "expression": "`cumulative_active_mrr`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "month",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Month"
+                },
+                "y": {
+                  "fieldName": "cumulative_active_mrr",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Cumulative Active MRR ($)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "MRR Growth Over Time"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 6,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "hdr-health",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Account Health"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "bar-lifecycle",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "lifecycle",
+                  "fields": [
+                    {
+                      "name": "lifecycle_stage",
+                      "expression": "`lifecycle_stage`"
+                    },
+                    {
+                      "name": "plan_type",
+                      "expression": "`plan_type`"
+                    },
+                    {
+                      "name": "account_count",
+                      "expression": "`account_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "lifecycle_stage",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Lifecycle Stage"
+                },
+                "y": {
+                  "fieldName": "account_count",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Accounts"
+                },
+                "color": {
+                  "fieldName": "plan_type",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Plan"
+                }
+              },
+              "mark": {
+                "layout": "group"
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Account Lifecycle by Plan"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "hdr-eng",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Top Accounts by Engagement (Last 90 Days)"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 19,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "bar-top",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "top_accounts",
+                  "fields": [
+                    {
+                      "name": "company_name",
+                      "expression": "`company_name`"
+                    },
+                    {
+                      "name": "total_events",
+                      "expression": "`total_events`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "total_events",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Total Events"
+                },
+                "y": {
+                  "fieldName": "company_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Account"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Top 20 Accounts by Events"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "scatter-eng",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "engagement",
+                  "fields": [
+                    {
+                      "name": "company_name",
+                      "expression": "`company_name`"
+                    },
+                    {
+                      "name": "plan_type",
+                      "expression": "`plan_type`"
+                    },
+                    {
+                      "name": "total_events",
+                      "expression": "`total_events`"
+                    },
+                    {
+                      "name": "total_session_minutes",
+                      "expression": "`total_session_minutes`"
+                    },
+                    {
+                      "name": "pages_viewed",
+                      "expression": "`pages_viewed`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "scatter",
+              "encodings": {
+                "x": {
+                  "fieldName": "total_events",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Total Events"
+                },
+                "y": {
+                  "fieldName": "total_session_minutes",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Session Minutes"
+                },
+                "size": {
+                  "fieldName": "pages_viewed",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Pages"
+                },
+                "color": {
+                  "fieldName": "plan_type",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Plan"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Engagement: Events vs Session Duration"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 20,
+            "width": 6,
+            "height": 7
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "ml",
+      "displayName": "Churn Risk (ML)",
+      "layout": [
+        {
+          "widget": {
+            "name": "ml-title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Churn Risk — ML Predictions"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ml-sub",
+            "multilineTextboxSpec": {
+              "lines": [
+                "Per-account churn risk from the registered model account_churn_model (v1). Scored over currently-active accounts."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-high",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "risk_kpis",
+                  "fields": [
+                    {
+                      "name": "high_risk_accounts",
+                      "expression": "`high_risk_accounts`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "high_risk_accounts",
+                  "displayName": "High-risk accounts",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "fixed",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "High-Risk Accounts (>=70%)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-mrr-risk",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "risk_kpis",
+                  "fields": [
+                    {
+                      "name": "mrr_at_risk",
+                      "expression": "`mrr_at_risk`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "mrr_at_risk",
+                  "displayName": "MRR at risk",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Monthly MRR at Risk"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-med",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "risk_kpis",
+                  "fields": [
+                    {
+                      "name": "medium_risk_accounts",
+                      "expression": "`medium_risk_accounts`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "medium_risk_accounts",
+                  "displayName": "Medium-risk accounts",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "fixed",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Medium-Risk Accounts"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-auc",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "best_model",
+                  "fields": [
+                    {
+                      "name": "best_auc",
+                      "expression": "`best_auc`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "best_auc",
+                  "displayName": "Best model AUC",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "fixed",
+                      "places": 3
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Best Model AUC"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "hdr-dist",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Risk Distribution & Model Performance"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "bar-band",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "risk_band",
+                  "fields": [
+                    {
+                      "name": "risk_band",
+                      "expression": "`risk_band`"
+                    },
+                    {
+                      "name": "accounts",
+                      "expression": "`accounts`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "risk_band",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Risk Band"
+                },
+                "y": {
+                  "fieldName": "accounts",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Accounts"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Accounts by Risk Band"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "bar-leaderboard",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "model_leaderboard",
+                  "fields": [
+                    {
+                      "name": "model",
+                      "expression": "`model`"
+                    },
+                    {
+                      "name": "auc",
+                      "expression": "`auc`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "model",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Model"
+                },
+                "y": {
+                  "fieldName": "auc",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "AUC (test set)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Model Leaderboard (AUC) — GBT vs Baseline"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 6,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "hdr-feat",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## What Drives Churn (Model Feature Importance)"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "bar-feat",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "feature_importance",
+                  "fields": [
+                    {
+                      "name": "feature",
+                      "expression": "`feature`"
+                    },
+                    {
+                      "name": "importance",
+                      "expression": "`importance`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "importance",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Importance (AUC drop when shuffled)"
+                },
+                "y": {
+                  "fieldName": "feature",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Feature"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Churn Drivers"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "hdr-list",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Top At-Risk Accounts to Contact"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 19,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "tbl-risk",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "top_at_risk",
+                  "fields": [
+                    {
+                      "name": "account_id",
+                      "expression": "`account_id`"
+                    },
+                    {
+                      "name": "plan_type",
+                      "expression": "`plan_type`"
+                    },
+                    {
+                      "name": "monthly_recurring_revenue",
+                      "expression": "`monthly_recurring_revenue`"
+                    },
+                    {
+                      "name": "total_events_90d",
+                      "expression": "`total_events_90d`"
+                    },
+                    {
+                      "name": "churn_risk",
+                      "expression": "`churn_risk`"
+                    },
+                    {
+                      "name": "risk_band",
+                      "expression": "`risk_band`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "account_id",
+                    "displayName": "Account"
+                  },
+                  {
+                    "fieldName": "plan_type",
+                    "displayName": "Plan"
+                  },
+                  {
+                    "fieldName": "monthly_recurring_revenue",
+                    "displayName": "MRR ($)"
+                  },
+                  {
+                    "fieldName": "total_events_90d",
+                    "displayName": "Events 90d"
+                  },
+                  {
+                    "fieldName": "churn_risk",
+                    "displayName": "Churn risk"
+                  },
+                  {
+                    "fieldName": "risk_band",
+                    "displayName": "Band"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Top 20 At-Risk Accounts"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ]
+}
