@@ -1,6 +1,61 @@
-.databricks/
+# ===== Databricks Asset Bundle =====
+.databricks/            # local bundle state, sync snapshots, deployment metadata
+*.lock
+
+# ===== Secrets / credentials (NEVER commit) =====
+.env
+.env.*
+*.env
+.databrickscfg
+secrets.*
+*.pem
+*.key
+credentials.json
+*-token*
+
+# ===== Python =====
 __pycache__/
-*.pyc
-.DS_Store
-.venv/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 *.egg-info/
+.eggs/
+dist/
+build/
+
+# ===== Virtual environments =====
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# ===== MLflow (local runs/artifacts) =====
+mlruns/
+mlartifacts/
+
+# ===== Local data (don't push datasets) =====
+data/
+*.parquet
+*.delta
+*.db
+
+# ===== IDE / editors =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===== OS junk =====
+.DS_Store
+Thumbs.db
+
+# ===== Logs / temp =====
+*.log
+*.tmp
+tmp/
+.cache/
